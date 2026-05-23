@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  # Main application service
+  watch-together:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: watch-together
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      - NODE_ENV=production
+      - DISCORD_APP_ID=${DISCORD_APP_ID}
+      - DISCORD_CLIENT_SECRET=${DISCORD_CLIENT_SECRET}
+      - CLIENT_URL=${CLIENT_URL}
+      - PORT=${PORT:-3000}
+      - MAX_ROOM_SIZE=${MAX_ROOM_SIZE:-50}
+      - MAX_QUEUE_SIZE=${MAX_QUEUE_SIZE:-100}
+      - ROOM_IDLE_TIMEOUT_MS=${ROOM_IDLE_TIMEOUT_MS:-1800000}
+      - HEARTBEAT_INTERVAL_MS=${HEARTBEAT_INTERVAL_MS:-2000}
+      - DRIFT_SOFT_THRESHOLD_MS=${DRIFT_SOFT_THRESHOLD_MS:-300}
+      - DRIFT_HARD_THRESHOLD_MS=${DRIFT_HARD_THRESHOLD_MS:-1000}
+      - SYNC_EVENTS_PER_SECOND=${SYNC_EVENTS_PER_SECOND:-5}
+      - QUEUE_ADDS_PER_MINUTE=${QUEUE_ADDS_PER_MINUTE:-10}
+      - DB_PATH=/app/data/sessions.db
+      # Optional Redis for scaling
+      - REDIS_URL=${REDIS_URL:-}
+    volumes:
+      # Persist SQLite database
+      - ./data:/app/data
+      # Logs
+      - ./logs:/app/logs
+    networks:
+      - watch-together-network
+    depends_on:
+      - redis
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # Redis for horizontal scaling (optional)
+  redis:
+    image: redis:7-alpine
+    container_name: watch-together-redis
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+    networks:
+      - watch-together-network
+    command: redis-server --appendonly yes
+
+networks:
+  watch-together-network:
+    driver: bridge
+
+volumes:
+  redis-data:
