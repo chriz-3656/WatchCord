@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Watch Together</title>
+  
+  <!-- Discord Embedded App SDK -->
+  <script src="https://discord.com/embedded-app-sdk"></script>
+  
+  <!-- Socket.IO Client -->
+  <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
+  
+  <!-- YouTube iframe API -->
+  <script src="https://www.youtube.com/iframe_api"></script>
+  
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="stylesheet" href="/css/activity.css">
+  <link rel="stylesheet" href="/css/player.css">
+  <link rel="stylesheet" href="/css/queue.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="screen active">
+      <div class="loading-content">
+        <div class="spinner"></div>
+        <h1>Watch Together</h1>
+        <p id="loading-text">Connecting to Discord...</p>
+      </div>
+    </div>
+
+    <!-- Main Activity Screen -->
+    <div id="activity-screen" class="screen">
+      <!-- Header -->
+      <header class="activity-header">
+        <div class="header-left">
+          <h1 class="activity-title">🎬 Watch Together</h1>
+        </div>
+        <div class="header-center">
+          <div id="sync-status" class="sync-status synced">
+            <span class="status-dot"></span>
+            <span class="status-text">Synced</span>
+          </div>
+        </div>
+        <div class="header-right">
+          <div id="participant-count" class="participant-count">
+            <span class="count">0</span> participants
+          </div>
+        </div>
+      </header>
+
+      <!-- Main Content -->
+      <main class="activity-main">
+        <!-- Video Player Section -->
+        <section class="player-section">
+          <div id="player-container" class="player-container">
+            <div id="player-wrapper" class="player-wrapper">
+              <!-- YouTube player will be inserted here -->
+              <div id="youtube-player"></div>
+            </div>
+            
+            <!-- Playback Controls -->
+            <div id="playback-controls" class="playback-controls">
+              <div class="controls-left">
+                <button id="btn-play-pause" class="control-btn" title="Play/Pause">
+                  <svg class="icon icon-play" viewBox="0 0 24 24">
+                    <path d="M8 5v14l11-7z"/>
+                  </svg>
+                  <svg class="icon icon-pause hidden" viewBox="0 0 24 24">
+                    <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+                  </svg>
+                </button>
+                
+                <button id="btn-skip" class="control-btn" title="Skip">
+                  <svg class="icon" viewBox="0 0 24 24">
+                    <path d="M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z"/>
+                  </svg>
+                </button>
+              </div>
+              
+              <div class="controls-center">
+                <div class="progress-bar-container">
+                  <div id="progress-bar" class="progress-bar">
+                    <div id="progress-fill" class="progress-fill"></div>
+                  </div>
+                  <div class="time-display">
+                    <span id="current-time">0:00</span>
+                    <span id="duration">0:00</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="controls-right">
+                <div class="volume-control">
+                  <svg class="icon" viewBox="0 0 24 24">
+                    <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+                  </svg>
+                  <input type="range" id="volume-slider" min="0" max="100" value="100">
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Now Playing Info -->
+          <div id="now-playing" class="now-playing hidden">
+            <img id="np-thumbnail" class="np-thumbnail" src="" alt="">
+            <div class="np-info">
+              <h3 id="np-title" class="np-title">No video playing</h3>
+              <p id="np-added-by" class="np-added-by"></p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Queue Section -->
+        <section class="queue-section">
+          <div class="queue-header">
+            <h2 class="queue-title">Queue</h2>
+            <span id="queue-count" class="queue-count">0 items</span>
+          </div>
+          
+          <!-- Add to Queue Form -->
+          <form id="add-to-queue-form" class="add-to-queue-form">
+            <input 
+              type="text" 
+              id="queue-url-input" 
+              class="queue-input" 
+              placeholder="Paste YouTube URL..." 
+              autocomplete="off"
+              required
+            >
+            <button type="submit" id="btn-add-queue" class="btn-add" title="Add to queue">
+              <svg class="icon" viewBox="0 0 24 24">
+                <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+              </svg>
+            </button>
+          </form>
+          
+          <!-- Queue List -->
+          <div id="queue-list" class="queue-list">
+            <div class="queue-empty">
+              <p>No videos in queue</p>
+              <p class="queue-hint">Paste a YouTube URL above to add</p>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <!-- Participants Sidebar -->
+      <aside class="participants-sidebar">
+        <h3 class="sidebar-title">Participants</h3>
+        <div id="participants-list" class="participants-list">
+          <!-- Participant items will be rendered here -->
+        </div>
+      </aside>
+    </div>
+
+    <!-- Error Toast -->
+    <div id="error-toast" class="toast hidden">
+      <span id="error-message"></span>
+    </div>
+  </div>
+
+  <!-- Application Scripts -->
+  <script type="module" src="/js/app.js"></script>
+</body>
+</html>
